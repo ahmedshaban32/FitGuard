@@ -365,7 +365,33 @@ export const openApiSpec = {
       },
     },
     "/api/coaches/applications": {
-      post: { tags: ["Coaches"], summary: "Apply to become coach (user role)", security: [{ bearerAuth: [] }], responses: { 201: { description: "Application submitted" } } },
+      post: {
+        tags: ["Coaches"],
+        summary: "Apply to become coach (user role)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  bio: {
+                    type: "string",
+                    maxLength: 500,
+                    example: "Certified personal trainer with 5 years experience.",
+                  },
+                  specialties: {
+                    type: "array",
+                    items: { type: "string" },
+                    example: ["Weight Loss", "HIIT", "Nutrition"],
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: "Application submitted" } },
+      },
       get: { tags: ["Coaches"], summary: "List pending coach applications (admin)", security: [{ bearerAuth: [] }], responses: { 200: { description: "Pending applications" } } },
     },
     "/api/coaches/applications/{id}/decision": {

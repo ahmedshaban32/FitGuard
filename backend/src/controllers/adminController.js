@@ -17,7 +17,7 @@ function toPublicUser(user) {
 
 export async function getDashboard(req, res, next) {
   try {
-    const [users, trainers, activeSubscriptions, pendingCoachApplications, exercises, sessions] =
+    const [users, coaches, activeSubscriptions, pendingCoachApplications, exercises, sessions] =
       await Promise.all([
         User.countDocuments({}),
         User.countDocuments({ role: "trainer" }),
@@ -30,7 +30,7 @@ export async function getDashboard(req, res, next) {
     res.json({
       metrics: {
         users,
-        trainers,
+        coaches,
         activeSubscriptions,
         pendingCoachApplications,
         activeExercises: exercises,
@@ -91,6 +91,14 @@ export async function getUserById(req, res, next) {
 export async function updateUserRole(req, res, next) {
   try {
     const { role } = req.body ?? {};
+
+    if (role === "trainer") {
+      throw new AppError("Use role 'coach' instead of 'trainer'", {
+        statusCode: 400,
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     const internalRole = role === "coach" ? "trainer" : role;
     if (!ROLES.includes(internalRole)) {
       throw new AppError("role must be one of: user, coach, admin", {
