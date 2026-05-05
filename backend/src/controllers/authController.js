@@ -27,7 +27,14 @@ function publicUser(doc) {
     id: doc.id,
     email: doc.email,
     role: doc.role,
-    profile: doc.profile ? { name: doc.profile.name } : {},
+    profile: doc.profile
+      ? {
+          name: doc.profile.name ?? null,
+          heightCm: doc.profile.heightCm ?? null,
+          weightKg: doc.profile.weightKg ?? null,
+          goal: doc.profile.goal ?? null,
+        }
+      : {},
   };
 }
 

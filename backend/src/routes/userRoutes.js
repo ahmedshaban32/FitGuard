@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { authMiddleware } from "../middlewares/authMiddleware.js";
+import * as user from "../controllers/userController.js";
+
+const router = Router();
+
+router.get("/me/profile", authMiddleware, user.getProfile);
+router.patch("/me/profile", authMiddleware, user.updateProfile);
+router.post("/me/ai-plan", authMiddleware, user.generateAiPlan);
+
+export default router;

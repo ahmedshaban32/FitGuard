@@ -5,6 +5,13 @@ export const ROLES = ["user", "trainer", "admin"];
 const ProfileSchema = new mongoose.Schema(
   {
     name: { type: String, trim: true },
+    heightCm: { type: Number, min: 80, max: 260, default: null },
+    weightKg: { type: Number, min: 20, max: 350, default: null },
+    goal: {
+      type: String,
+      enum: ["fat_loss", "muscle_gain", "mobility", "general_fitness"],
+      default: null,
+    },
   },
   { _id: false }
 );
