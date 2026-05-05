@@ -7,6 +7,7 @@ import subscriptionRoutes from "./subscriptionRoutes.js";
 import exerciseRoutes from "./exerciseRoutes.js";
 import workoutRoutes from "./workoutRoutes.js";
 import progressRoutes from "./progressRoutes.js";
+import adminRoutes from "./adminRoutes.js";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/subscriptions", subscriptionRoutes);
 router.use("/exercises", exerciseRoutes);
 router.use("/workouts", workoutRoutes);
 router.use("/progress", progressRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;

@@ -6,8 +6,8 @@ export const openApiSpec = {
   openapi: "3.0.3",
   info: {
     title: "FitGuard API",
-    version: "0.2.0",
-    description: "Backend for FitGuard (auth, coaching, plans, progress). Base path: `/api`.",
+    version: "0.3.0",
+    description: "Production-style backend contract for FitGuard. Base path: `/api`.",
   },
   servers: [{ url: "/", description: "This server" }],
   tags: [
@@ -19,6 +19,7 @@ export const openApiSpec = {
     { name: "Exercises", description: "Tracked and guided exercise catalog" },
     { name: "Workouts", description: "Assigned workout and nutrition plans" },
     { name: "Progress", description: "Workout sessions and CV stats" },
+    { name: "Admin", description: "Application control and user management" },
   ],
   components: {
     securitySchemes: {
@@ -49,25 +50,48 @@ export const openApiSpec = {
       },
       UserProfile: {
         type: "object",
+        required: [
+          "age",
+          "heightCm",
+          "weightKg",
+          "mealsPerDay",
+          "gender",
+          "goal",
+          "activityLevel",
+          "dietaryPreference",
+        ],
         properties: {
           name: { type: "string", nullable: true },
-          heightCm: { type: "number", nullable: true },
-          weightKg: { type: "number", nullable: true },
-          goal: {
+          age: { type: "integer", minimum: 8, maximum: 110, example: 24 },
+          heightCm: { type: "number", minimum: 80, maximum: 260, example: 175 },
+          weightKg: { type: "number", minimum: 20, maximum: 350, example: 72 },
+          mealsPerDay: { type: "integer", minimum: 1, maximum: 12, example: 4 },
+          gender: { type: "string", enum: ["Male", "Female"] },
+          goal: { type: "string", enum: ["Muscle Building", "Weight Loss", "Maintain"] },
+          activityLevel: {
             type: "string",
-            nullable: true,
-            enum: ["fat_loss", "muscle_gain", "mobility", "general_fitness"],
+            enum: ["Sedentary", "Light", "Moderate", "Active", "Very Active"],
           },
+          dietaryPreference: {
+            type: "string",
+            enum: ["No restriction", "Vegetarian", "Vegan", "Pescatarian", "Low-carb"],
+          },
+          foodDislikes: { type: "string", example: "liver, okra..." },
+          healthConditions: {
+            type: "string",
+            example: "diabetes, high blood pressure...",
+          },
+          allergies: { type: "string", example: "nuts, lactose, gluten..." },
         },
       },
       RegisterBody: {
         type: "object",
-        required: ["email", "password"],
+        required: ["email", "password", "profile"],
         properties: {
           email: { type: "string", format: "email" },
           password: { type: "string", format: "password", minLength: 8 },
           role: { type: "string", enum: ["user", "trainer"], default: "user" },
-          name: { type: "string" },
+          profile: { $ref: "#/components/schemas/UserProfile" },
         },
       },
       LoginBody: {
@@ -132,16 +156,35 @@ export const openApiSpec = {
           sessionAt: { type: "string", format: "date-time" },
         },
       },
+      AdminUserRoleUpdateBody: {
+        type: "object",
+        required: ["role"],
+        properties: {
+          role: { type: "string", enum: ["user", "trainer", "admin"] },
+        },
+      },
     },
   },
   paths: {
-    "/api/health": { get: { tags: ["Health"], summary: "Health check", responses: { 200: { description: "OK" } } } },
+    "/api/health": {
+      get: { tags: ["Health"], summary: "Health check", responses: { 200: { description: "OK" } } },
+    },
     "/api/auth/register": {
       post: {
         tags: ["Auth"],
-        summary: "Register",
-        requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/RegisterBody" } } } },
-        responses: { 201: { description: "Created" }, 400: { description: "Validation", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } },
+        summary: "Register with complete fitness profile",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/RegisterBody" } } },
+        },
+        responses: {
+          201: { description: "Created" },
+          400: {
+            description: "Validation",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+          409: { description: "Email taken" },
+        },
       },
     },
     "/api/auth/login": {
@@ -152,7 +195,14 @@ export const openApiSpec = {
         responses: { 200: { description: "JWT + user" }, 401: { description: "Invalid credentials" } },
       },
     },
-    "/api/auth/me": { get: { tags: ["Auth"], summary: "Current user", security: [{ bearerAuth: [] }], responses: { 200: { description: "Profile" }, 401: { description: "Unauthorized" } } } },
+    "/api/auth/me": {
+      get: {
+        tags: ["Auth"],
+        summary: "Current user",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Profile" }, 401: { description: "Unauthorized" } },
+      },
+    },
     "/api/users/me/profile": {
       get: { tags: ["Users"], summary: "Get current user profile", security: [{ bearerAuth: [] }], responses: { 200: { description: "Profile" } } },
       patch: {
@@ -163,8 +213,17 @@ export const openApiSpec = {
         responses: { 200: { description: "Profile updated" } },
       },
     },
-    "/api/users/me/ai-plan": { post: { tags: ["Users"], summary: "Generate free-tier AI plan (stub)", security: [{ bearerAuth: [] }], responses: { 201: { description: "Plan generated" } } } },
-    "/api/coaches/public": { get: { tags: ["Coaches"], summary: "List approved coaches", responses: { 200: { description: "Coach list" } } } },
+    "/api/users/me/ai-plan": {
+      post: {
+        tags: ["Users"],
+        summary: "Generate free-tier AI plan (stub)",
+        security: [{ bearerAuth: [] }],
+        responses: { 201: { description: "Plan generated" } },
+      },
+    },
+    "/api/coaches/public": {
+      get: { tags: ["Coaches"], summary: "List approved coaches", responses: { 200: { description: "Coach list" } } },
+    },
     "/api/coaches/applications": {
       post: { tags: ["Coaches"], summary: "Apply to become coach (user role)", security: [{ bearerAuth: [] }], responses: { 201: { description: "Application submitted" } } },
       get: { tags: ["Coaches"], summary: "List pending coach applications (admin)", security: [{ bearerAuth: [] }], responses: { 200: { description: "Pending applications" } } },
@@ -199,5 +258,51 @@ export const openApiSpec = {
     "/api/workouts/coach/assignments": { post: { tags: ["Workouts"], summary: "Coach assigns plan to subscribed user", security: [{ bearerAuth: [] }], responses: { 201: { description: "Plan assigned" } } } },
     "/api/progress/sessions": { post: { tags: ["Progress"], summary: "Log workout session with tracked stats", security: [{ bearerAuth: [] }], responses: { 201: { description: "Session logged" } } } },
     "/api/progress/me": { get: { tags: ["Progress"], summary: "Get progress summary and recent sessions", security: [{ bearerAuth: [] }], responses: { 200: { description: "Progress data" } } } },
+    "/api/admin/dashboard": {
+      get: {
+        tags: ["Admin"],
+        summary: "Admin metrics overview",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Metrics" }, 403: { description: "Forbidden" } },
+      },
+    },
+    "/api/admin/users": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get all users (paginated)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { in: "query", name: "page", schema: { type: "integer", minimum: 1, default: 1 } },
+          { in: "query", name: "limit", schema: { type: "integer", minimum: 1, maximum: 100, default: 20 } },
+          { in: "query", name: "role", schema: { type: "string", enum: ["user", "trainer", "admin"] } },
+          { in: "query", name: "search", schema: { type: "string" } },
+        ],
+        responses: { 200: { description: "Users list" }, 403: { description: "Forbidden" } },
+      },
+    },
+    "/api/admin/users/{id}": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get user by id",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+        responses: { 200: { description: "User" }, 404: { description: "Not found" } },
+      },
+    },
+    "/api/admin/users/{id}/role": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Change user role",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": { schema: { $ref: "#/components/schemas/AdminUserRoleUpdateBody" } },
+          },
+        },
+        responses: { 200: { description: "Updated" }, 404: { description: "Not found" } },
+      },
+    },
   },
 };
